@@ -6,7 +6,7 @@ const Sequelize = require('sequelize');
 const process = require('process');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
-const config = require(__dirname + '/../config/config.json')[env];
+const config = require(__dirname + '/../config/config.js')[env];
 const db = {};
 
 let sequelize;
@@ -27,9 +27,20 @@ fs
     );
   })
   .forEach(file => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
-  });
+  const modelPath = path.join(__dirname, file);
+  const imported = require(modelPath);
+
+  // Tambahkan debug check
+  if (typeof imported !== 'function') {
+    console.error(`⚠️ File model '${file}' tidak mengekspor fungsi!`);
+    console.error('Isi export:', imported);
+    return; // lewati file ini biar server tetap jalan
+  }
+
+  const model = imported(sequelize, Sequelize.DataTypes);
+  db[model.name] = model;
+});
+
 
 Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
